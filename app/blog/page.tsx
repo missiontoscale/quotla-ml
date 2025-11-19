@@ -9,10 +9,17 @@ import { format } from 'date-fns'
 export default function BlogPage() {
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
+    checkAuth()
     loadPosts()
   }, [])
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    setIsAuthenticated(!!session)
+  }
 
   const loadPosts = async () => {
     const { data, error } = await supabase
@@ -46,9 +53,20 @@ export default function BlogPage() {
               Quotla
             </Link>
             <div className="flex gap-4">
-              <Link href="/login" className="btn btn-secondary">
-                Sign In
-              </Link>
+              {isAuthenticated ? (
+                <Link href="/dashboard" className="btn btn-primary">
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login" className="btn btn-secondary">
+                    Sign In
+                  </Link>
+                  <Link href="/signup" className="btn btn-primary">
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

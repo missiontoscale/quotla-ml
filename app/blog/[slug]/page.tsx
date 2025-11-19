@@ -15,6 +15,7 @@ export default function BlogPostPage() {
   const [commenting, setCommenting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   const [commentForm, setCommentForm] = useState({
     author_name: '',
@@ -23,8 +24,14 @@ export default function BlogPostPage() {
   })
 
   useEffect(() => {
+    checkAuth()
     loadPost()
   }, [params.slug])
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    setIsAuthenticated(!!session)
+  }
 
   const loadPost = async () => {
     const { data, error } = await supabase
@@ -117,9 +124,20 @@ export default function BlogPostPage() {
               <Link href="/blog" className="text-gray-700 hover:text-gray-900">
                 Blog
               </Link>
-              <Link href="/login" className="btn btn-secondary">
-                Sign In
-              </Link>
+              {isAuthenticated ? (
+                <Link href="/dashboard" className="btn btn-primary">
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login" className="btn btn-secondary">
+                    Sign In
+                  </Link>
+                  <Link href="/signup" className="btn btn-primary">
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

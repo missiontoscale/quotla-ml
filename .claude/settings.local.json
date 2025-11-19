@@ -1,10 +1,14 @@
 {
+  "env": {
+    "includeCoAuthoredBy": "false"
+  },
   "permissions": {
     "allow": [
       "Bash(npm ls:*)",
       "Bash(\"c:\\Users\\ASUS\\Documents\\Projects\\Projects completed @ Mission To Scale\\quotla\\app\\quotes\\[id]\\page.tsx\")",
       "Bash(\"c:\\Users\\ASUS\\Documents\\Projects\\Projects completed @ Mission To Scale\\quotla\\app\\invoices\\[id]\\page.tsx\")",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
