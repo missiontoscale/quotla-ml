@@ -43,7 +43,8 @@
       "Bash(C:UsersASUSanaconda3python.exe -m uvicorn app.main:app --reload --port 8000)",
       "Bash(py -m uvicorn:*)",
       "Bash(del:*)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(git config:*)"
     ],
     "deny": [],
     "ask": []

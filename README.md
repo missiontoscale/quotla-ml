@@ -712,7 +712,57 @@ The easiest way to deploy this API is using Render:
    - Your API will be available at `https://your-service-name.onrender.com`
    - Interactive docs: `https://your-service-name.onrender.com/docs`
 
-**Note:** The free tier on Render may spin down after inactivity. First request after inactivity may take 30-60 seconds.
+**Note:** The free tier on Render may spin down after inactivity. First request after inactivity may take 30-60 seconds. See "Keeping the Server Awake (Free Tier)" below to prevent this.
+
+### Keeping the Server Awake (Free Tier)
+
+Render's free tier spins down your service after 15 minutes of inactivity. To keep your API running 24/7 for free, use [UptimeRobot](https://uptimerobot.com) to ping your health endpoint:
+
+**How It Works:**
+
+1. Render provides 750 free hours per month (31.25 days) - enough for full-time operation
+2. UptimeRobot pings your `/health` endpoint every 5 minutes
+3. This keeps Render thinking the app is active, preventing shutdown
+4. Your API stays responsive without manual wake-up delays
+
+**Setup Steps:**
+
+1. **Deploy your service to Render** (follow steps above)
+   - Note your service URL: `https://your-service-name.onrender.com`
+
+2. **Sign up for UptimeRobot** (free plan)
+   - Go to [uptimerobot.com](https://uptimerobot.com)
+   - Create a free account
+
+3. **Create a Monitor**
+   - Click "+ Add New Monitor"
+   - Monitor Type: `HTTP(s)`
+   - Friendly Name: `Quotla API Health Check`
+   - URL: `https://your-service-name.onrender.com/health`
+   - Monitoring Interval: `5 minutes`
+   - Click "Create Monitor"
+
+4. **Verify It's Working**
+
+   ```bash
+   # Check your health endpoint
+   curl https://your-service-name.onrender.com/health
+   # Expected: {"status": "healthy"}
+   ```
+
+**Benefits:**
+
+- ✅ 24/7 uptime on free tier
+- ✅ No cold starts or 30-60 second delays
+- ✅ No manual intervention needed
+- ✅ Free monitoring dashboard
+- ✅ Email alerts if service goes down
+
+**Free Tier Limits:**
+
+- Render: 750 hours/month per service (31.25 days)
+- UptimeRobot: Up to 50 monitors on free plan
+- Result: Completely free, always-on API
 
 ### Manual Deployment
 
