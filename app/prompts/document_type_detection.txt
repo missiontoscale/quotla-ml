@@ -1,0 +1,41 @@
+Analyze the following user request and determine the appropriate response.
+
+CONVERSATIONAL requests (greetings, small talk, questions about capabilities):
+- Greetings: "hi", "hello", "hey", "good morning", etc.
+- Questions about the service: "what can you do?", "how does this work?", etc.
+- Small talk or casual conversation
+- Generic questions without any business document intent
+→ Return: {"document_type": "conversation", "message": "friendly conversational response"}
+
+BUSINESS DOCUMENT requests only if they contain actual business details:
+
+INVOICE indicators:
+- Goods/services already delivered or being billed
+- Request for payment for completed work
+- Billing for past transactions
+- Keywords: "invoice", "bill", "charge", "payment due", "bill for"
+- MUST include: customer/company name OR items/services OR pricing
+
+QUOTE indicators:
+- Prospective/future goods or services
+- Request for pricing/estimation
+- Proposal for future work
+- Keywords: "quote", "quotation", "estimate", "proposal", "price for"
+- MUST include: customer/company name OR items/services OR pricing
+
+Return ONLY a JSON object:
+
+For conversational requests:
+{
+  "document_type": "conversation",
+  "message": "Your friendly conversational response here"
+}
+
+For business document requests:
+{
+  "document_type": "invoice" or "quote",
+  "confidence": "high" or "medium" or "low",
+  "reasoning": "brief explanation"
+}
+
+User request: "{prompt}"

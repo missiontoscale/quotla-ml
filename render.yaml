@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: quotla-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: AI_PROVIDER
+        value: openai
+      - key: FALLBACK_AI_PROVIDER
+        value: gemini
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DEFAULT_TAX_RATE
+        value: "7.5"
+      - key: DEFAULT_DELIVERY_RATE
+        value: "3.0"
+    healthCheckPath: /health

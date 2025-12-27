@@ -1,0 +1,8 @@
+A. README should references Python, not Nextjs
+B. Business logic should only be hardcoded if User does not input any - Tax rates (7.5%) and delivery fees (3%) embedded in code
+C. Fix: Duplicated code - Three export endpoints repeat identical logic
+D. LEt documentaiton reflect the new status and AI bits alone.
+E. Do not break anything
+F. IF a particular model does not work [default being GPT, switch to Gemini]
+G. Clean up all
+H. Make arrangements for this to be deployed on Render

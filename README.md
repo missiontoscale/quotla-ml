@@ -1,229 +1,756 @@
-# Quotla
+# Quotla AI Document Generator API
 
-A professional business management platform for creating quotes and invoices with AI-powered content generation.
+A FastAPI-based service that converts natural language prompts into structured business documents (invoices and quotes) using AI, with support for multiple AI providers and export formats.
 
 ## Features
 
-- **Professional Quote & Invoice Management**: Create, edit, and track business documents with customizable line items, automatic tax calculations, and multi-currency support
-- **AI-Powered Content Generation**: Generate professional service descriptions 
-- **Client Management**: Store and manage client information with full contact details and history
-- **Business Profile**: Customize your business profile with logo, company details, and branding
-- **Blog System**: Public blog with comment moderation for engagement
-- **Newsletter**: Email subscription system for marketing
-- **Admin Dashboard**: Manage comments and view subscribers
-- **Enterprise Security**: Row-level security, rate limiting, and comprehensive audit logging
+- **Natural Language Processing**: Convert plain text descriptions into structured invoice/quote data
+- **Multi-Provider AI Support**: OpenAI, Anthropic Claude, and Google Gemini
+- **File Upload Support**: Extract data from PDF, DOCX, TXT, and image files
+- **Vision AI**: Process scanned receipts and invoice photos using vision models
+- **Multiple Export Formats**: JSON, PDF, DOCX, and PNG
+- **Conversation History**: Support for multi-turn conversations to refine documents
+- **AI-Powered Detection**: Automatically detects document type based on context
+- **Smart Currency Detection**: Prompts user when currency is not specified
 
-## Tech Stack
+## Quick Start
 
-- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes
-- **Database**: Supabase (PostgreSQL with Row Level Security)
-- **Authentication**: Supabase Auth
-- **AI**: Anthropic Claude 3.5 Sonnet
-- **Storage**: Supabase Storage (for logos)
+### 1. Installation
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+ installed
-- A Supabase account and project
-- An Anthropic API key
-
-### Installation
-
-1. Clone the repository:
 ```bash
-cd quotla
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-2. Install dependencies:
+### 2. Environment Setup
+
+Create a `.env` file with your AI provider credentials:
+
 ```bash
-npm install
+# Choose your AI provider: openai, anthropic, or gemini
+AI_PROVIDER=openai
+
+# Add the corresponding API key
+OPENAI_API_KEY=your_key_here
+# ANTHROPIC_API_KEY=your_key_here
+# GEMINI_API_KEY=your_key_here
 ```
 
-3. Set up environment variables:
-   - Copy `.env.example` to `.env`
-   - Fill in your Supabase credentials
-   - Add your Anthropic API key
+### 3. Run the Server
 
-4. Set up the database:
-   - Go to your Supabase project SQL Editor
-   - Run the SQL script in `supabase-schema.sql`
-   - This will create all tables, policies, and triggers
-
-5. Set up Supabase Storage:
-   - Go to Storage in Supabase Dashboard
-   - Create a new bucket called `business-assets`
-   - Set it to public
-   - Add RLS policies for authenticated users
-
-6. Run the development server:
 ```bash
-npm run dev
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-7. Open [http://localhost:3000](http://localhost:3000)
+**Access Points:**
+- Server: http://localhost:8000
+- Interactive API Docs: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
-## Environment Variables
-
-Required environment variables (see `.env.example`):
-
-- `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous key
-- `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key (for admin operations)
-- `ANTHROPIC_API_KEY`: Your Anthropic API key for AI features
-- `NEXT_PUBLIC_APP_URL`: Your application URL (for production)
-
-## Key Features Explained
-
-### AI Description Generation
-
-When creating quotes or invoices, click "Generate with AI" on any line item. Describe your service in plain language, and AI will generate a professional description.
-
-Example:
-- Input: "Website design for small business with 5 pages"
-- Output: Professional, detailed description suitable for client-facing documents
-
-### Security Features
-
-- **Row Level Security**: Users can only access their own data
-- **Rate Limiting**: Prevents spam and abuse (5 comments per hour)
-- **Password Requirements**: Strong password validation with complexity rules
-- **File Upload Security**: Validates file types and sizes, prevents malicious uploads
-- **Input Sanitization**: All user inputs are sanitized to prevent XSS attacks
-- **Audit Logging**: Track security events and admin actions
-
-### Multi-Currency Support
-
-Supports 8 major currencies:
-- USD (US Dollar)
-- EUR (Euro)
-- GBP (British Pound)
-- CAD (Canadian Dollar)
-- AUD (Australian Dollar)
-- JPY (Japanese Yen)
-- CNY (Chinese Yuan)
-- INR (Indian Rupee)
-
-## Project Structure
-
-```
-quotla/
-├── app/                      # Next.js app directory
-│   ├── api/                 # API routes
-│   │   ├── ai/             # AI generation endpoints
-│   │   ├── blog/           # Blog comment submission
-│   │   └── newsletter/     # Newsletter subscription
-│   ├── admin/              # Admin dashboard
-│   ├── blog/               # Public blog pages
-│   ├── clients/            # Client management
-│   ├── dashboard/          # Main dashboard
-│   ├── invoices/           # Invoice management
-│   ├── newsletter/         # Newsletter subscription page
-│   ├── quotes/             # Quote management
-│   ├── settings/           # User settings
-│   ├── login/              # Authentication
-│   └── signup/             # User registration
-├── components/             # Reusable React components
-├── contexts/              # React contexts (Auth)
-├── lib/                   # Utility libraries
-│   ├── ai/               # AI integration
-│   ├── supabase/         # Database clients
-│   └── utils/            # Helper functions
-├── types/                # TypeScript type definitions
-├── supabase-schema.sql   # Database schema
-└── README.md            # This file
+**Verify Server:**
+```bash
+# Health check
+curl http://localhost:8000/health
+# Expected: {"status": "healthy"}
 ```
 
-## Usage Guide
+## API Endpoints
 
-### For Regular Users
+### Health Check
 
-1. **Sign Up**: Create an account with email and secure password
-2. **Complete Profile**: Add your business information and logo in Settings
-3. **Add Clients**: Go to Clients and add your customer information
-4. **Create Quotes**: Use AI to generate professional descriptions
-5. **Create Invoices**: Convert quotes to invoices or create new ones
-6. **Track Status**: Monitor document status from the dashboard
+**GET** `/health`
 
-### For Admins
+Returns server health status.
 
-Admins have additional capabilities:
-1. **Moderate Comments**: Approve or reject blog comments
-2. **View Subscribers**: See newsletter subscriber list
-3. **Access Audit Logs**: Review security events
-
-To make a user an admin:
-```sql
-UPDATE profiles SET is_admin = true WHERE email = 'admin@example.com';
+```bash
+curl http://localhost:8000/health
 ```
 
-## Database Schema
-
-The application uses the following main tables:
-- `profiles`: User business profiles
-- `clients`: Client information
-- `quotes` & `quote_items`: Quote documents
-- `invoices` & `invoice_items`: Invoice documents
-- `blog_posts` & `blog_comments`: Blog system
-- `newsletter_subscribers`: Email subscribers
-- `rate_limits`: Rate limiting tracking
-- `audit_logs`: Security audit trail
-
-All tables have Row Level Security (RLS) policies to ensure data isolation.
-
-## Security Best Practices
-
-1. **Never commit `.env` files** - They contain sensitive credentials
-2. **Use strong passwords** - The app enforces this, but ensure your Supabase/Anthropic accounts also use them
-3. **Enable email confirmation** - Configure Supabase Auth for production
-4. **Set up proper CORS** - Configure allowed domains in production
-5. **Regular backups** - Use Supabase's backup features
-6. **Monitor audit logs** - Review security events regularly
-
-## Deployment
-
-### Deploy to Vercel
-
-1. Push your code to GitHub
-2. Connect to Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy
-
-### Important Production Steps
-
-1. Set `NEXT_PUBLIC_APP_URL` to your production URL
-2. Enable email confirmation in Supabase Auth settings
-3. Configure email templates in Supabase
-4. Set up proper domain for Supabase project
-5. Review and adjust rate limits for production traffic
-
-## Troubleshooting
-
-### Database Connection Issues
-- Verify Supabase URL and keys are correct
-- Check if RLS policies are properly set up
-- Ensure you ran the complete SQL schema
-
-### AI Generation Not Working
-- Verify Anthropic API key is valid
-- Check API usage limits
-- Review browser console for errors
-
-### File Upload Issues
-- Ensure `business-assets` bucket exists in Supabase Storage
-- Verify bucket is set to public
-- Check file size limits (max 2MB)
-
-## License
-
-This project is proprietary software developed for Mission To Scale.
-
-## Support
-
-For issues or questions, please contact the development team.
+Response:
+```json
+{"status": "healthy"}
+```
 
 ---
 
-Built with Next.js, Supabase, and Anthropic Claude
+### Generate Document (JSON)
+
+**POST** `/api/generate`
+
+Generate structured document data from natural language prompt. Auto-detects document type if not specified.
+
+**Request Body:**
+```json
+{
+  "prompt": "Invoice for John Doe at 123 Main St, Lagos. 100 units of Product X at 5000 NGN each",
+  "history": [
+    {"role": "user", "content": "Previous message"},
+    {"role": "assistant", "content": "Previous response"}
+  ],
+  "document_type": "invoice"
+}
+```
+
+**Parameters:**
+- `prompt` (required): Natural language description of the document
+- `history` (optional): Conversation history for context
+- `document_type` (optional): "invoice" or "quote" (auto-detected if omitted)
+
+**Response:**
+```json
+{
+  "success": true,
+  "document_type": "invoice",
+  "data": {
+    "invoice_number": "INV20241201153045",
+    "date": "2024-12-01",
+    "customer_name": "John Doe",
+    "address": "123 Main St",
+    "city": "Lagos",
+    "country": "Nigeria",
+    "items": [
+      {
+        "description": "Product X",
+        "quantity": 100,
+        "unit_price": 5000,
+        "amount": 500000
+      }
+    ],
+    "subtotal": 500000,
+    "tax_rate": 0.075,
+    "tax_amount": 37500,
+    "delivery_rate": 0.03,
+    "delivery_amount": 15000,
+    "total": 552500,
+    "currency": "NGN"
+  },
+  "text_output": "--- INVOICE ---\n..."
+}
+```
+
+**Examples:**
+
+```bash
+# Basic invoice generation
+curl -X POST http://localhost:8000/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Invoice for Jane Smith in Abuja. 50 consulting hours at 15000 NGN per hour"
+  }'
+
+# Multi-item invoice with conversation history
+curl -X POST http://localhost:8000/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Actually, change quantity to 1000 units",
+    "history": [
+      {"role": "user", "content": "Create invoice for 500 units of Product X at 5000 NGN"},
+      {"role": "assistant", "content": "Invoice created with 500 units"}
+    ],
+    "document_type": "invoice"
+  }'
+```
+
+---
+
+### Generate Invoice (Specific Type)
+
+**POST** `/api/generate/invoice`
+
+Shortcut endpoint that forces document type to "invoice".
+
+```bash
+curl -X POST http://localhost:8000/api/generate/invoice \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "John at Lagos for 500 units at 5000 NGN"}'
+```
+
+---
+
+### Generate Quote (Specific Type)
+
+**POST** `/api/generate/quote`
+
+Shortcut endpoint that forces document type to "quote".
+
+```bash
+curl -X POST http://localhost:8000/api/generate/quote \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Jane Smith in Abuja. 50 consulting hours at 15000 NGN per hour"}'
+```
+
+---
+
+### Generate with File Upload (Documents & Images)
+
+**POST** `/api/generate/with-file`
+
+Extract document data from uploaded files - supports both document files (PDF, DOCX, TXT) and images.
+
+**Request (multipart/form-data):**
+- `prompt` (required): Instructions for extracting data
+- `file` (required): Document or image file
+- `document_type` (optional): "invoice" or "quote" (auto-detected if omitted)
+
+**Supported File Types:**
+
+*Documents (Text Extraction):*
+- PDF (.pdf)
+- Word Documents (.docx, .doc)
+- Text Files (.txt)
+
+*Images (Vision AI):*
+- JPEG / JPG
+- PNG
+- Other image formats
+
+**AI Models Used:**
+
+*For Images:*
+- OpenAI: gpt-4o
+- Anthropic: claude-3-5-sonnet-20241022
+- Gemini: gemini-1.5-flash
+
+*For Documents:*
+- OpenAI: gpt-4
+- Anthropic: claude-3-5-sonnet-20241022
+- Gemini: gemini-pro
+
+**Examples:**
+
+```bash
+# Extract from PDF invoice
+curl -X POST http://localhost:8000/api/generate/with-file \
+  -F "prompt=Extract invoice data from this PDF" \
+  -F "file=@invoice.pdf" \
+  -F "document_type=invoice"
+
+# Extract from Word document
+curl -X POST http://localhost:8000/api/generate/with-file \
+  -F "prompt=Parse quote information" \
+  -F "file=@quote.docx"
+
+# Extract from receipt image
+curl -X POST http://localhost:8000/api/generate/with-file \
+  -F "prompt=Extract data from this receipt" \
+  -F "file=@receipt.jpg"
+
+# Extract from text file
+curl -X POST http://localhost:8000/api/generate/with-file \
+  -F "prompt=Create invoice from this data" \
+  -F "file=@invoice_data.txt"
+```
+
+---
+
+### Export as PDF
+
+**POST** `/api/export/pdf`
+
+Generate document and download as professionally formatted PDF.
+
+**Request:** Same as `/api/generate`
+
+**Response:** Binary PDF file
+
+```bash
+curl -X POST http://localhost:8000/api/export/pdf \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Invoice for John at Lagos for 500 units at 5000 NGN"}' \
+  --output invoice.pdf
+```
+
+**PDF Features:**
+- Professional layout with header and branding
+- Formatted tables for line items
+- Color-coded sections
+- Automatic calculations displayed
+- Currency formatting
+
+---
+
+### Export as DOCX
+
+**POST** `/api/export/docx`
+
+Generate document and download as Microsoft Word document.
+
+**Request:** Same as `/api/generate`
+
+**Response:** Binary DOCX file
+
+```bash
+curl -X POST http://localhost:8000/api/export/docx \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Quote for 100 hours consulting at 20000 NGN"}' \
+  --output quote.docx
+```
+
+**DOCX Features:**
+- Editable Word document format
+- Professional table styling
+- Bold headers and totals
+- Preserves formatting for easy customization
+
+---
+
+### Export as PNG
+
+**POST** `/api/export/png`
+
+Generate document and download as PNG image.
+
+**Request:** Same as `/api/generate`
+
+**Response:** Binary PNG file
+
+```bash
+curl -X POST http://localhost:8000/api/export/png \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Invoice for services rendered"}' \
+  --output invoice.png
+```
+
+**Image Features:**
+- 800x1000 pixel resolution
+- Clean white background
+- Professional typography
+- Easy sharing on social media/messaging apps
+
+---
+
+## AI Provider Configuration
+
+### Supported Providers
+
+The service supports three AI providers, configurable via the `AI_PROVIDER` environment variable:
+
+#### OpenAI (Default)
+```bash
+AI_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+```
+- Text model: `gpt-4`
+- Vision model: `gpt-4o`
+- Best for: General reliability and speed
+
+#### Anthropic Claude
+```bash
+AI_PROVIDER=anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+```
+- Model: `claude-3-5-sonnet-20241022`
+- Best for: Complex reasoning and accuracy
+- Supports vision capabilities
+
+#### Google Gemini
+```bash
+AI_PROVIDER=gemini
+GEMINI_API_KEY=...
+```
+- Text model: `gemini-pro`
+- Vision model: `gemini-1.5-flash`
+- Best for: Fast processing and cost efficiency
+
+---
+
+## Document Processing Logic
+
+### 1. Document Type Detection
+
+If `document_type` is not provided, the API auto-detects based on keywords:
+- Contains "invoice" or "bill" → Invoice
+- Otherwise → Quote
+
+### 2. Data Extraction
+
+The AI service uses provider-specific prompts from:
+- `app/prompts/invoice_prompt.txt`
+- `app/prompts/quote_prompt.txt`
+
+### 3. Data Enrichment
+
+After AI extraction, the system automatically adds:
+
+**For Invoices:**
+- `invoice_number`: `INV{YYYYMMDDHHmmss}`
+- `date`: Current date
+- `subtotal`: Sum of all item amounts
+- `tax_rate`: 7.5% (default for Nigeria)
+- `tax_amount`: Calculated from subtotal
+- `delivery_rate`: 3% (default)
+- `delivery_amount`: Calculated from subtotal
+- `total`: Subtotal + tax + delivery
+- `currency`: NGN (default)
+
+**For Quotes:**
+- `quote_number`: `QT{YYYYMMDDHHmmss}`
+- `date`: Current date
+- `subtotal`: Sum of all item amounts
+- `tax_rate`: 7.5% (default)
+- `tax_amount`: Calculated from subtotal
+- `total`: Subtotal + tax
+- `currency`: NGN (default)
+
+### 4. Item Calculation
+
+For each item:
+```
+amount = quantity × unit_price
+```
+
+All monetary calculations are automatic.
+
+---
+
+## Customizing AI Prompts
+
+Customize extraction behavior by editing prompt files:
+
+**Invoice Prompt:**
+```bash
+# Edit app/prompts/invoice_prompt.txt
+```
+
+**Quote Prompt:**
+```bash
+# Edit app/prompts/quote_prompt.txt
+```
+
+Prompts define the JSON schema and extraction instructions for the AI models. The current prompts instruct the AI to extract:
+- Customer information (name, address, city, country)
+- Line items (description, quantity, unit_price)
+- Tax and delivery rates
+- Currency
+
+---
+
+## Testing
+
+### Manual Testing
+
+Use the interactive Swagger UI at http://localhost:8000/docs to test all endpoints with a visual interface.
+
+### Automated Tests
+
+Run the comprehensive test suite:
+
+```bash
+# Make sure server is running first
+uvicorn app.main:app --reload
+
+# In another terminal, run tests
+python tests/test_api.py
+```
+
+**Test Coverage:**
+1. Health check
+2. Simple invoice generation
+3. Quote generation
+4. Complex multi-item invoices
+5. Auto-detect document type
+6. Conversation history context
+7. Missing information handling
+8. Large number handling
+9. Currency extraction
+10. Calculation accuracy
+11. Performance benchmark
+
+---
+
+## Architecture
+
+```
+quotla/
+├── app/
+│   ├── __init__.py
+│   ├── main.py              # FastAPI app and endpoints
+│   ├── ai_service.py        # AI provider integrations
+│   ├── export_service.py    # PDF/DOCX/PNG generation
+│   └── prompts/
+│       ├── invoice_prompt.txt
+│       └── quote_prompt.txt
+├── tests/
+│   ├── test_api.py          # API performance tests
+│   └── test_image_upload.py # Image upload tests
+├── requirements.txt
+├── .env.example
+└── README.md
+```
+
+### Core Components
+
+**FastAPI Application ([app/main.py](app/main.py))**
+- Route handlers for all endpoints
+- Request/response models using Pydantic
+- Document type detection logic
+- Data enrichment and formatting
+- CORS middleware configuration
+
+**AI Service ([app/ai_service.py](app/ai_service.py))**
+- Provider-agnostic AI interface
+- Handles OpenAI, Anthropic, and Gemini
+- Text and vision model support
+- JSON parsing and validation
+- Prompt loading from files
+
+**Export Service ([app/export_service.py](app/export_service.py))**
+- PDF generation using ReportLab
+- DOCX generation using python-docx
+- PNG generation using Pillow
+- Professional formatting and styling
+
+---
+
+## Dependencies
+
+```
+fastapi==0.104.1           # Web framework
+uvicorn[standard]          # ASGI server
+pydantic==2.5.0           # Data validation
+python-dotenv==1.0.0      # Environment management
+openai>=2.8.0             # OpenAI API client
+anthropic>=0.39.0         # Anthropic API client
+google-generativeai>=0.8.0 # Gemini API client
+python-multipart==0.0.6   # File upload support
+Pillow>=10.0.0            # Image processing
+reportlab>=4.0.0          # PDF generation
+python-docx>=1.0.0        # DOCX reading & generation
+PyPDF2>=3.0.0             # PDF text extraction
+pdfplumber>=0.10.0        # Advanced PDF parsing
+```
+
+---
+
+## Troubleshooting
+
+### Server Won't Start
+
+**Issue: "No module named 'openai'"**
+```bash
+pip install -r requirements.txt
+```
+
+**Issue: "Port 8000 already in use"**
+```bash
+# Windows
+netstat -ano | findstr :8000
+taskkill /PID <process_id> /F
+
+# OR use different port
+uvicorn app.main:app --reload --port 8001
+```
+
+**Issue: "Python was not found"**
+```bash
+# Use py launcher
+py -m uvicorn app.main:app --reload
+```
+
+### 500 Internal Server Errors
+
+**Common Causes:**
+
+1. **Invalid API Key**
+   - Check `.env` file has correct `OPENAI_API_KEY=sk-...`
+   - No quotes around the key
+   - Verify key at https://platform.openai.com/account/api-keys
+
+2. **No Credits**
+   - Add credits to OpenAI account
+   - OR switch to different provider (Anthropic/Gemini)
+
+3. **AI Parsing Errors**
+   - AI returned non-JSON text
+   - Check uvicorn logs for actual error
+   - Try different AI provider
+
+**Debug Steps:**
+```bash
+# 1. Start with verbose logging
+uvicorn app.main:app --reload --log-level debug
+
+# 2. Test with simple request
+curl -X POST "http://localhost:8000/api/generate/quote" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Quote for 1 item at 100 USD"}'
+
+# 3. Check API key works
+curl https://api.openai.com/v1/models \
+  -H "Authorization: Bearer YOUR_KEY"
+```
+
+### Currency Detection Issues
+
+**Symptom:** Backend returns `needs_currency: true`
+
+**Solution:** Always include currency explicitly:
+```bash
+✅ GOOD: "Quote for Jane. 50 hours at 15000 NGN"
+❌ BAD: "Quote for Jane. 50 hours at 15000"
+```
+
+---
+
+## Recent Fixes
+
+### Tax & Delivery Calculation Bug (FIXED)
+
+**Issue:** Tax and delivery rates were displaying as 800% and 300% instead of 8% and 3%
+
+**Root Cause:** AI returns rates as percentages (8 for 8%), but backend treated them as decimals (0.08)
+
+**Solution:**
+- Convert AI-provided percentages to decimals for calculations
+- Store both formats: `tax_rate` (decimal) and `tax_rate_percentage` (display)
+- Update display logic to use the percentage field
+
+**Files Modified:**
+- [app/main.py:568-589](app/main.py#L568-L589) - `_enrich_data()` calculation fix
+- [app/main.py:617-618, 635](app/main.py#L617-L618) - `_format_text()` display fix
+
+**Verification:**
+```bash
+# Test the fix
+curl -X POST "http://localhost:8000/api/generate/quote" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Quote for Jane Smith in Abuja. 50 consulting hours at 15000 NGN per hour"}'
+
+# Expected: Tax (7.5%): NGN 56,250.00 (NOT 800%)
+```
+
+---
+
+## Frontend Integration Notes
+
+**For Next.js/React Frontend Developers:**
+
+The backend now returns two fields for rates:
+
+```json
+{
+  "tax_rate": 0.075,           // Decimal for calculations
+  "tax_rate_percentage": 7.5,  // Original percentage for display
+  "delivery_rate": 0.03,       // Decimal for calculations
+  "delivery_rate_percentage": 3 // Original percentage for display
+}
+```
+
+**Best Practices:**
+- Use `tax_rate` and `delivery_rate` for calculations (decimals)
+- Use `tax_rate_percentage` and `delivery_rate_percentage` for display (percentages)
+- Handle `needs_currency: true` response by prompting user for currency
+- Check `success: false` for error handling
+
+---
+
+## Error Handling
+
+All endpoints return appropriate HTTP status codes:
+
+**200 OK**: Successful operation
+```json
+{
+  "success": true,
+  "document_type": "invoice",
+  "data": {...}
+}
+```
+
+**400 Bad Request**: Invalid input
+```json
+{
+  "detail": "Invalid request format"
+}
+```
+
+**500 Internal Server Error**: Processing error
+```json
+{
+  "detail": "Error message details"
+}
+```
+
+---
+
+## Performance Considerations
+
+- Average response time: 2-8 seconds (depends on AI provider)
+- Concurrent request support via FastAPI async
+- In-memory processing (no database required)
+- Suitable for production with proper scaling
+
+---
+
+## Production Deployment
+
+### Deploy to Render
+
+The easiest way to deploy this API is using Render:
+
+1. **Push to GitHub**
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin <your-repo-url>
+   git push -u origin main
+   ```
+
+2. **Deploy on Render**
+   - Go to [render.com](https://render.com) and sign up/login
+   - Click "New +" → "Web Service"
+   - Connect your GitHub repository
+   - Render will automatically detect `render.yaml` and configure the service
+   - Add your API keys as environment variables:
+     - `OPENAI_API_KEY`
+     - `GEMINI_API_KEY` (for fallback)
+     - `ANTHROPIC_API_KEY` (optional)
+   - Click "Create Web Service"
+
+3. **Access Your API**
+   - Your API will be available at `https://your-service-name.onrender.com`
+   - Interactive docs: `https://your-service-name.onrender.com/docs`
+
+**Note:** The free tier on Render may spin down after inactivity. First request after inactivity may take 30-60 seconds.
+
+### Manual Deployment
+
+For production environments with custom hosting:
+
+```bash
+# Without auto-reload, with multiple workers
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+
+# With Gunicorn (recommended)
+gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+```
+
+### Environment Variables
+
+Required for production:
+- `AI_PROVIDER` - Primary AI provider (openai, anthropic, or gemini)
+- `FALLBACK_AI_PROVIDER` - Fallback provider if primary fails (default: gemini)
+- `OPENAI_API_KEY` - OpenAI API key (if using OpenAI)
+- `GEMINI_API_KEY` - Google Gemini API key (if using Gemini)
+- `ANTHROPIC_API_KEY` - Anthropic API key (if using Claude)
+
+Optional:
+- `DEFAULT_TAX_RATE` - Default tax rate percentage (default: 7.5)
+- `DEFAULT_DELIVERY_RATE` - Default delivery rate percentage (default: 3.0)
+
+---
+
+## License
+
+See LICENSE file for details.
+
+---
+
+## Support
+
+For issues or questions:
+- Check the API docs: http://localhost:8000/docs
+- Review test examples in `tests/test_api.py`
+- Examine prompt templates in `app/prompts/`
+- Enable debug logging: `uvicorn app.main:app --reload --log-level debug`

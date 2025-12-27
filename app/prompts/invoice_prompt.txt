@@ -1,0 +1,65 @@
+Extract business document information from user requests for an INVOICE. Return ONLY valid JSON, no markdown, no explanations.
+
+CRITICAL RULES:
+1. If NO currency is explicitly mentioned (NGN, USD, EUR, GBP, etc.), set "currency" to null
+2. Extract tax_rate and delivery_rate only if mentioned; otherwise set to 0
+3. Calculate amounts accurately: amount = quantity × unit_price
+4. Set subtotal = sum of all item amounts
+5. CALCULATION FORMULAS (MUST FOLLOW EXACTLY):
+   - tax_amount = subtotal × (tax_rate / 100)
+   - delivery_amount = subtotal × (delivery_rate / 100)
+   - total = subtotal + tax_amount + delivery_amount
+6. Express rates as percentages (e.g., 7.5 for 7.5%, NOT 0.075)
+
+CURRENCY DETECTION:
+- Look for explicit currency codes: NGN, USD, EUR, GBP, etc.
+- Look for currency symbols: ₦, $, €, £, etc.
+- Look for currency names: "Naira", "Dollars", "Euros", etc.
+- If NONE found, set "currency" to null (this will prompt user to specify)
+
+ADDRESS EXTRACTION (VERY IMPORTANT):
+- Extract the COMPLETE address exactly as provided
+- Look for patterns like: "at [address]", "client at [address]", "client location is [address]"
+- The CLIENT/CUSTOMER address is what goes in "Bill To" section
+- Common patterns:
+  * "Invoice for [Name] at [Address]" → Use [Address]
+  * "Client at [Address]" → Use [Address]
+  * "Client location is [Address]" → Use [Address]
+  * "[Number], [Street], [Area], [City]" → Use complete address
+- If multiple addresses mentioned (e.g., "Client location" and "My location"), use the CLIENT location
+- Do NOT default to simple addresses like "123 Main St" - use the EXACT address provided
+- Split address into components:
+  * "address": Street address (e.g., "17, Gospel Crusader, Ogba")
+  * "city": City name (e.g., "Lagos")
+  * "country": Country name (e.g., "Nigeria")
+
+EXAMPLES:
+Input: "Invoice for John at 17, Gospel Crusader, Ogba, Lagos"
+Output: "address": "17, Gospel Crusader, Ogba", "city": "Lagos", "country": "Nigeria"
+
+Input: "Client location is 17, Gospel Crusader, Ogba, Lagos. My location is 16, Taiwo Okoilu street, Ogba, Lagos"
+Output: "address": "17, Gospel Crusader, Ogba", "city": "Lagos", "country": "Nigeria"
+(Use CLIENT location, NOT "My location")
+
+JSON Schema:
+{
+  "customer_name": "string",
+  "address": "string (FULL street address exactly as provided)",
+  "city": "string",
+  "country": "string",
+  "items": [
+    {
+      "description": "string",
+      "quantity": number,
+      "unit_price": number,
+      "amount": number
+    }
+  ],
+  "subtotal": number,
+  "tax_rate": number,
+  "tax_amount": number,
+  "delivery_rate": number,
+  "delivery_amount": number,
+  "total": number,
+  "currency": "string or null"
+}
