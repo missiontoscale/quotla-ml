@@ -44,7 +44,10 @@
       "Bash(py -m uvicorn:*)",
       "Bash(del:*)",
       "Bash(xargs ls:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(C:UsersASUSanaconda3python.exe -m py_compile:*)",
+      "Bash(py -m py_compile:*)"
     ],
     "deny": [],
     "ask": []
