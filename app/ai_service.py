@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 from openai import OpenAI
 from anthropic import Anthropic
-import google.generativeai as genai
+from google import genai
 import io
 import base64
 from docx import Document
@@ -27,8 +27,9 @@ class AIService:
         elif self.provider == 'gemini':
             api_key = os.getenv('GEMINI_API_KEY')
             if api_key:
-                genai.configure(api_key=api_key)
-            self.client = 'configured' if api_key else None
+                self.client = genai.Client(api_key=api_key)
+            else:
+                self.client = None
 
         # Initialize fallback provider
         self._initialize_fallback()
@@ -47,8 +48,7 @@ class AIService:
         elif self.fallback_provider == 'gemini':
             api_key = os.getenv('GEMINI_API_KEY')
             if api_key:
-                genai.configure(api_key=api_key)
-                self.fallback_client = 'configured'
+                self.fallback_client = genai.Client(api_key=api_key)
 
     def _load_prompt(self, document_type: str) -> str:
         """Load prompt from file"""
@@ -120,11 +120,14 @@ For {document_type}:
             content = response.content[0].text.strip()
 
         elif provider == 'gemini':
-            model = genai.GenerativeModel('gemini-pro')
             prompt_text = "\n\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
-            response = model.generate_content(
-                prompt_text,
-                generation_config=genai.types.GenerationConfig(temperature=0.1, max_output_tokens=1500)
+            response = client.models.generate_content(
+                model='gemini-2.0-flash-exp',
+                contents=prompt_text,
+                config={
+                    'temperature': 0.1,
+                    'max_output_tokens': 1500
+                }
             )
             content = response.text.strip()
 
@@ -179,10 +182,19 @@ For {document_type}:
             image_bytes = base64.b64decode(image_b64)
             image = PIL.Image.open(io.BytesIO(image_bytes))
 
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            response = model.generate_content(
-                [system_prompt + "\n\n" + prompt, image],
-                generation_config=genai.types.GenerationConfig(temperature=0.1, max_output_tokens=1500)
+            # Upload image to Gemini
+            uploaded_file = self.client.files.upload(file=io.BytesIO(image_bytes))
+
+            response = self.client.models.generate_content(
+                model='gemini-2.0-flash-exp',
+                contents=[
+                    system_prompt + "\n\n" + prompt,
+                    uploaded_file
+                ],
+                config={
+                    'temperature': 0.1,
+                    'max_output_tokens': 1500
+                }
             )
             content = response.text.strip()
 
@@ -268,11 +280,14 @@ For {document_type}:
             content = response.content[0].text.strip()
 
         elif self.provider == 'gemini':
-            model = genai.GenerativeModel('gemini-pro')
             prompt_text = "\n\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
-            response = model.generate_content(
-                prompt_text,
-                generation_config=genai.types.GenerationConfig(temperature=0.1, max_output_tokens=1500)
+            response = self.client.models.generate_content(
+                model='gemini-2.0-flash-exp',
+                contents=prompt_text,
+                config={
+                    'temperature': 0.1,
+                    'max_output_tokens': 1500
+                }
             )
             content = response.text.strip()
 
@@ -299,10 +314,13 @@ For {document_type}:
             content = response.content[0].text.strip()
 
         elif self.provider == 'gemini':
-            model = genai.GenerativeModel('gemini-pro')
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(temperature=0.1, max_output_tokens=200)
+            response = self.client.models.generate_content(
+                model='gemini-2.0-flash-exp',
+                contents=prompt,
+                config={
+                    'temperature': 0.1,
+                    'max_output_tokens': 200
+                }
             )
             content = response.text.strip()
 

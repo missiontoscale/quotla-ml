@@ -86,7 +86,7 @@ export_service = ExportService()
     description="Returns basic API information and version."
 )
 async def root():
-    return {"message": "Quotla AI API", "version": "1.0.0"}
+    return {"message": "Quotla AI API", "version": "2.0.0"}
 
 @app.get(
     "/health",
