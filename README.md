@@ -5,13 +5,15 @@ A FastAPI-based service that converts natural language prompts into structured b
 ## Features
 
 - **Natural Language Processing**: Convert plain text descriptions into structured invoice/quote data
-- **Multi-Provider AI Support**: OpenAI, Anthropic Claude, and Google Gemini
+- **Multi-Provider AI Support**: OpenAI GPT-4, Anthropic Claude, and Google Gemini
 - **File Upload Support**: Extract data from PDF, DOCX, TXT, and image files
 - **Vision AI**: Process scanned receipts and invoice photos using vision models
-- **Multiple Export Formats**: JSON, PDF, DOCX, and PNG
+- **Unified Export Endpoint**: Single `/api/export` endpoint for PDF, DOCX, and PNG formats
 - **Conversation History**: Support for multi-turn conversations to refine documents
 - **AI-Powered Detection**: Automatically detects document type based on context
 - **Smart Currency Detection**: Prompts user when currency is not specified
+- **Automatic Calculations**: Tax, delivery, and totals calculated automatically
+- **Dual Rate Format**: Stores both decimal and percentage formats for calculations and display
 
 ## Quick Start
 
@@ -153,44 +155,15 @@ curl -X POST http://localhost:8000/api/generate \
 
 ---
 
-### Generate Invoice (Specific Type)
+### File Upload Support
 
-**POST** `/api/generate/invoice`
-
-Shortcut endpoint that forces document type to "invoice".
-
-```bash
-curl -X POST http://localhost:8000/api/generate/invoice \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "John at Lagos for 500 units at 5000 NGN"}'
-```
-
----
-
-### Generate Quote (Specific Type)
-
-**POST** `/api/generate/quote`
-
-Shortcut endpoint that forces document type to "quote".
-
-```bash
-curl -X POST http://localhost:8000/api/generate/quote \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "Jane Smith in Abuja. 50 consulting hours at 15000 NGN per hour"}'
-```
-
----
-
-### Generate with File Upload (Documents & Images)
-
-**POST** `/api/generate/with-file`
-
-Extract document data from uploaded files - supports both document files (PDF, DOCX, TXT) and images.
+The `/api/generate` endpoint also supports file uploads using multipart/form-data:
 
 **Request (multipart/form-data):**
-- `prompt` (required): Instructions for extracting data
-- `file` (required): Document or image file
+- `prompt` (optional): Instructions for extracting data
+- `file` (optional): Document or image file
 - `document_type` (optional): "invoice" or "quote" (auto-detected if omitted)
+- `history` (optional): JSON string of conversation history
 
 **Supported File Types:**
 
@@ -202,120 +175,131 @@ Extract document data from uploaded files - supports both document files (PDF, D
 *Images (Vision AI):*
 - JPEG / JPG
 - PNG
-- Other image formats
+- GIF, BMP, WEBP
 
 **AI Models Used:**
 
-*For Images:*
+*For Images (Vision AI):*
 - OpenAI: gpt-4o
 - Anthropic: claude-3-5-sonnet-20241022
-- Gemini: gemini-1.5-flash
+- Gemini: gemini-2.0-flash-exp
 
-*For Documents:*
+*For Documents (Text):*
 - OpenAI: gpt-4
 - Anthropic: claude-3-5-sonnet-20241022
-- Gemini: gemini-pro
+- Gemini: gemini-2.0-flash-exp
 
 **Examples:**
 
 ```bash
 # Extract from PDF invoice
-curl -X POST http://localhost:8000/api/generate/with-file \
+curl -X POST http://localhost:8000/api/generate \
   -F "prompt=Extract invoice data from this PDF" \
   -F "file=@invoice.pdf" \
   -F "document_type=invoice"
 
 # Extract from Word document
-curl -X POST http://localhost:8000/api/generate/with-file \
+curl -X POST http://localhost:8000/api/generate \
   -F "prompt=Parse quote information" \
   -F "file=@quote.docx"
 
 # Extract from receipt image
-curl -X POST http://localhost:8000/api/generate/with-file \
+curl -X POST http://localhost:8000/api/generate \
   -F "prompt=Extract data from this receipt" \
   -F "file=@receipt.jpg"
 
 # Extract from text file
-curl -X POST http://localhost:8000/api/generate/with-file \
+curl -X POST http://localhost:8000/api/generate \
   -F "prompt=Create invoice from this data" \
   -F "file=@invoice_data.txt"
 ```
 
 ---
 
-### Export as PDF
+### Legacy Document Generation Endpoints (Deprecated)
 
-**POST** `/api/export/pdf`
+The following endpoints are deprecated but still supported for backward compatibility:
 
-Generate document and download as professionally formatted PDF.
+- **POST** `/api/generate/invoice` - Use `/api/generate` with `document_type=invoice` instead
+- **POST** `/api/generate/quote` - Use `/api/generate` with `document_type=quote` instead
+- **POST** `/api/generate/with-file` - Use `/api/generate` with file upload instead
 
-**Request:** Same as `/api/generate`
+---
 
-**Response:** Binary PDF file
+### Export Document (Unified Endpoint)
+
+**POST** `/api/export`
+
+Generate document and download in your preferred format (PDF, DOCX, or PNG) - all from one unified endpoint.
+
+**Request Parameters (multipart/form-data):**
+- `format` (required): Export format - 'pdf', 'docx', or 'png' (default: 'pdf')
+- `prompt` (optional): Natural language description
+- `file` (optional): Document or image file to extract from
+- `document_type` (optional): 'invoice' or 'quote' (auto-detected if omitted)
+- `history` (optional): JSON string of conversation history
+
+**Response:** Binary file in the specified format
+
+**Examples:**
 
 ```bash
-curl -X POST http://localhost:8000/api/export/pdf \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "Invoice for John at Lagos for 500 units at 5000 NGN"}' \
+# Export as PDF (default)
+curl -X POST http://localhost:8000/api/export \
+  -F "prompt=Invoice for John at Lagos for 500 units at 5000 NGN" \
+  -F "format=pdf" \
   --output invoice.pdf
-```
 
-**PDF Features:**
-- Professional layout with header and branding
-- Formatted tables for line items
-- Color-coded sections
-- Automatic calculations displayed
-- Currency formatting
-
----
-
-### Export as DOCX
-
-**POST** `/api/export/docx`
-
-Generate document and download as Microsoft Word document.
-
-**Request:** Same as `/api/generate`
-
-**Response:** Binary DOCX file
-
-```bash
-curl -X POST http://localhost:8000/api/export/docx \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "Quote for 100 hours consulting at 20000 NGN"}' \
+# Export as DOCX (Word document)
+curl -X POST http://localhost:8000/api/export \
+  -F "prompt=Quote for 100 hours consulting at 20000 NGN" \
+  -F "format=docx" \
   --output quote.docx
-```
 
-**DOCX Features:**
-- Editable Word document format
-- Professional table styling
-- Bold headers and totals
-- Preserves formatting for easy customization
-
----
-
-### Export as PNG
-
-**POST** `/api/export/png`
-
-Generate document and download as PNG image.
-
-**Request:** Same as `/api/generate`
-
-**Response:** Binary PNG file
-
-```bash
-curl -X POST http://localhost:8000/api/export/png \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "Invoice for services rendered"}' \
+# Export as PNG (Image)
+curl -X POST http://localhost:8000/api/export \
+  -F "prompt=Invoice for services rendered" \
+  -F "format=png" \
   --output invoice.png
+
+# Export from uploaded file
+curl -X POST http://localhost:8000/api/export \
+  -F "file=@receipt.jpg" \
+  -F "prompt=Extract invoice data" \
+  -F "format=pdf" \
+  --output extracted_invoice.pdf
 ```
 
-**Image Features:**
-- 800x1000 pixel resolution
+**Export Format Features:**
+
+**PDF Format:**
+- Professional layout with headers and branding
+- Formatted tables for line items
+- Color-coded sections (header, items, totals)
+- Letter-sized pages (8.5" × 11")
+- Best for: Print-ready invoices, professional delivery, accounting records
+
+**DOCX Format:**
+- Editable Word document format
+- Professional table styling with grid borders
+- Standard Word/Google Docs/LibreOffice compatibility
+- Best for: Templates, custom branding, further modifications
+
+**PNG Format:**
+- 800×1000 pixel resolution
 - Clean white background
 - Professional typography
-- Easy sharing on social media/messaging apps
+- Best for: Social media, WhatsApp, quick previews, mobile sharing
+
+---
+
+### Legacy Export Endpoints (Deprecated)
+
+The following endpoints are deprecated but still supported for backward compatibility:
+
+- **POST** `/api/export/pdf` - Use `/api/export` with `format=pdf` instead
+- **POST** `/api/export/docx` - Use `/api/export` with `format=docx` instead
+- **POST** `/api/export/png` - Use `/api/export` with `format=png` instead
 
 ---
 
@@ -348,8 +332,8 @@ ANTHROPIC_API_KEY=sk-ant-...
 AI_PROVIDER=gemini
 GEMINI_API_KEY=...
 ```
-- Text model: `gemini-pro`
-- Vision model: `gemini-1.5-flash`
+- Model: `gemini-2.0-flash-exp`
+- Supports both text and vision capabilities
 - Best for: Fast processing and cost efficiency
 
 ---
@@ -358,48 +342,132 @@ GEMINI_API_KEY=...
 
 ### 1. Document Type Detection
 
-If `document_type` is not provided, the API auto-detects based on keywords:
-- Contains "invoice" or "bill" → Invoice
-- Otherwise → Quote
+If `document_type` is not provided, the API uses AI-powered detection:
+- Analyzes context and keywords in the prompt
+- Detects conversational requests vs. business documents
+- Falls back to keyword detection if AI detection fails
+- Returns "invoice" or "quote" based on context
 
 ### 2. Data Extraction
 
-The AI service uses provider-specific prompts from:
-- `app/prompts/invoice_prompt.txt`
-- `app/prompts/quote_prompt.txt`
+The AI service uses specialized prompts from:
+- `app/prompts/invoice_prompt.txt` - Invoice extraction schema
+- `app/prompts/quote_prompt.txt` - Quote extraction schema
+- `app/prompts/document_type_detection.txt` - Type detection logic
 
 ### 3. Data Enrichment
 
-After AI extraction, the system automatically adds:
+After AI extraction, the system automatically enriches the data:
 
 **For Invoices:**
-- `invoice_number`: `INV{YYYYMMDDHHmmss}`
-- `date`: Current date
+- `invoice_number`: `INV{YYYYMMDDHHmmss}` (auto-generated timestamp-based ID)
+- `date`: Current date (YYYY-MM-DD format)
 - `subtotal`: Sum of all item amounts
-- `tax_rate`: 7.5% (default for Nigeria)
-- `tax_amount`: Calculated from subtotal
-- `delivery_rate`: 3% (default)
-- `delivery_amount`: Calculated from subtotal
-- `total`: Subtotal + tax + delivery
-- `currency`: NGN (default)
+- `tax_rate`: Decimal value (e.g., 0.075 for 7.5%)
+- `tax_rate_percentage`: Display value (e.g., 7.5)
+- `tax_amount`: `subtotal × tax_rate`
+- `delivery_rate`: Decimal value (e.g., 0.03 for 3%)
+- `delivery_rate_percentage`: Display value (e.g., 3.0)
+- `delivery_amount`: `subtotal × delivery_rate`
+- `total`: `subtotal + tax_amount + delivery_amount`
+- `currency`: Extracted from prompt or null (prompts user if missing)
 
 **For Quotes:**
-- `quote_number`: `QT{YYYYMMDDHHmmss}`
-- `date`: Current date
+- `quote_number`: `QT{YYYYMMDDHHmmss}` (auto-generated timestamp-based ID)
+- `date`: Current date (YYYY-MM-DD format)
 - `subtotal`: Sum of all item amounts
-- `tax_rate`: 7.5% (default)
-- `tax_amount`: Calculated from subtotal
-- `total`: Subtotal + tax
-- `currency`: NGN (default)
+- `tax_rate`: Decimal value (e.g., 0.075 for 7.5%)
+- `tax_rate_percentage`: Display value (e.g., 7.5)
+- `tax_amount`: `subtotal × tax_rate`
+- `total`: `subtotal + tax_amount` (no delivery for quotes)
+- `currency`: Extracted from prompt or null (prompts user if missing)
+
+**Default Rates (Configurable via Environment):**
+- Tax Rate: 7.5% (`DEFAULT_TAX_RATE`)
+- Delivery Rate: 3.0% (`DEFAULT_DELIVERY_RATE`)
 
 ### 4. Item Calculation
 
-For each item:
+For each line item:
 ```
 amount = quantity × unit_price
 ```
 
-All monetary calculations are automatic.
+All monetary calculations are performed automatically during enrichment.
+
+### 5. Response Schema
+
+**Complete Invoice Response Schema:**
+```json
+{
+  "success": true,
+  "document_type": "invoice",
+  "data": {
+    "invoice_number": "INV20241230153045",
+    "date": "2024-12-30",
+    "customer_name": "John Doe",
+    "address": "123 Main Street",
+    "city": "Lagos",
+    "country": "Nigeria",
+    "items": [
+      {
+        "description": "Product X",
+        "quantity": 100,
+        "unit_price": 5000,
+        "amount": 500000
+      }
+    ],
+    "subtotal": 500000,
+    "tax_rate": 0.075,
+    "tax_rate_percentage": 7.5,
+    "tax_amount": 37500,
+    "delivery_rate": 0.03,
+    "delivery_rate_percentage": 3.0,
+    "delivery_amount": 15000,
+    "total": 552500,
+    "currency": "NGN"
+  },
+  "text_output": "--- INVOICE ---\n..."
+}
+```
+
+**Complete Quote Response Schema:**
+```json
+{
+  "success": true,
+  "document_type": "quote",
+  "data": {
+    "quote_number": "QT20241230153045",
+    "date": "2024-12-30",
+    "customer_name": "Jane Smith",
+    "address": "456 Oak Avenue",
+    "city": "Abuja",
+    "country": "Nigeria",
+    "items": [
+      {
+        "description": "Consulting Services",
+        "quantity": 50,
+        "unit_price": 15000,
+        "amount": 750000
+      }
+    ],
+    "subtotal": 750000,
+    "tax_rate": 0.075,
+    "tax_rate_percentage": 7.5,
+    "tax_amount": 56250,
+    "total": 806250,
+    "currency": "NGN"
+  },
+  "text_output": "--- QUOTATION ---\n..."
+}
+```
+
+**Note on Rate Fields:**
+- AI returns rates as percentages (7.5 for 7.5%)
+- Backend converts to decimals for calculations (0.075)
+- Both formats stored in response for different uses:
+  - Use `tax_rate` and `delivery_rate` (decimals) for calculations
+  - Use `tax_rate_percentage` and `delivery_rate_percentage` for display
 
 ---
 
@@ -511,7 +579,7 @@ pydantic==2.5.0           # Data validation
 python-dotenv==1.0.0      # Environment management
 openai>=2.8.0             # OpenAI API client
 anthropic>=0.39.0         # Anthropic API client
-google-generativeai>=0.8.0 # Gemini API client
+google-genai>=0.2.0       # Google Gemini API client (new package)
 python-multipart==0.0.6   # File upload support
 Pillow>=10.0.0            # Image processing
 reportlab>=4.0.0          # PDF generation
@@ -588,35 +656,6 @@ curl https://api.openai.com/v1/models \
 ```bash
 ✅ GOOD: "Quote for Jane. 50 hours at 15000 NGN"
 ❌ BAD: "Quote for Jane. 50 hours at 15000"
-```
-
----
-
-## Recent Fixes
-
-### Tax & Delivery Calculation Bug (FIXED)
-
-**Issue:** Tax and delivery rates were displaying as 800% and 300% instead of 8% and 3%
-
-**Root Cause:** AI returns rates as percentages (8 for 8%), but backend treated them as decimals (0.08)
-
-**Solution:**
-- Convert AI-provided percentages to decimals for calculations
-- Store both formats: `tax_rate` (decimal) and `tax_rate_percentage` (display)
-- Update display logic to use the percentage field
-
-**Files Modified:**
-- [app/main.py:568-589](app/main.py#L568-L589) - `_enrich_data()` calculation fix
-- [app/main.py:617-618, 635](app/main.py#L617-L618) - `_format_text()` display fix
-
-**Verification:**
-```bash
-# Test the fix
-curl -X POST "http://localhost:8000/api/generate/quote" \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "Quote for Jane Smith in Abuja. 50 consulting hours at 15000 NGN per hour"}'
-
-# Expected: Tax (7.5%): NGN 56,250.00 (NOT 800%)
 ```
 
 ---

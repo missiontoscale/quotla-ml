@@ -14,6 +14,27 @@ import io
 
 class ExportService:
 
+    def generate_export(self, data: Dict[str, Any], doc_type: str, format: str = 'pdf') -> BytesIO:
+        """
+        Unified export method that generates documents in the specified format.
+
+        Args:
+            data: Document data dictionary
+            doc_type: 'invoice' or 'quote'
+            format: Export format - 'pdf', 'docx', or 'png'
+
+        Returns:
+            BytesIO buffer containing the generated document
+        """
+        if format.lower() == 'pdf':
+            return self.generate_pdf(data, doc_type)
+        elif format.lower() == 'docx':
+            return self.generate_docx(data, doc_type)
+        elif format.lower() == 'png':
+            return self.generate_image(data, doc_type)
+        else:
+            raise ValueError(f"Unsupported export format: {format}. Supported formats: pdf, docx, png")
+
     def generate_pdf(self, data: Dict[str, Any], doc_type: str) -> BytesIO:
         """Generate PDF from document data"""
         buffer = BytesIO()

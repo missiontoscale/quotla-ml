@@ -24,7 +24,9 @@ Convert natural language descriptions, files, or images into structured business
 
 ### 🎯 Unified API Design
 
-**One endpoint to rule them all**: `/api/generate` accepts text prompts, file uploads, or images - no need for separate endpoints!
+**Two unified endpoints for everything**:
+- `/api/generate` - Generate JSON data from text, files, or images
+- `/api/export` - Export documents in PDF, DOCX, or PNG format
 
 ### Key Features
 
@@ -34,7 +36,7 @@ Convert natural language descriptions, files, or images into structured business
 * **Vision AI**: Process scanned receipts and invoice photos
 * **Multiple Export Formats**: JSON, PDF, DOCX, PNG
 * **Conversation History**: Multi-turn conversations to refine documents
-* **Auto-Detection**: Automatically determines if input is an invoice or quote
+* **AI-Powered Detection**: Automatically determines if input is an invoice or quote
 * **Smart Currency Detection**: Prompts user if currency not specified
 
 ### Supported Document Types
@@ -44,17 +46,24 @@ Convert natural language descriptions, files, or images into structured business
 
 ### AI Models Used
 
-* **Text Models**: gpt-4, claude-3-5-sonnet-20241022, gemini-pro
-* **Vision Models**: gpt-4o, claude-3-5-sonnet-20241022, gemini-1.5-flash
+* **Text Models**: gpt-4, claude-3-5-sonnet-20241022, gemini-2.0-flash-exp
+* **Vision Models**: gpt-4o, claude-3-5-sonnet-20241022, gemini-2.0-flash-exp
 
 Configure via `AI_PROVIDER` environment variable.
 
 ### Quick Start
 
-Use `/api/generate` for everything:
-- Text only: `{"prompt": "Invoice for John at Lagos, 100 units at 5000 NGN"}`
-- With file: Upload file with `file` parameter
-- Export directly: Use `/api/export/pdf`, `/api/export/docx`, or `/api/export/png`
+**Generate JSON data:**
+```
+POST /api/generate
+{"prompt": "Invoice for John at Lagos, 100 units at 5000 NGN"}
+```
+
+**Export as PDF/DOCX/PNG:**
+```
+POST /api/export
+{"prompt": "...", "format": "pdf"}
+```
     """,
     version="2.0.0",
     contact={
@@ -321,10 +330,115 @@ async def generate_with_file(
     return await generate_document(prompt=prompt, file=file, document_type=document_type, history=None)
 
 @app.post(
-    "/api/export/pdf",
+    "/api/export",
     tags=["Export Formats"],
-    summary="Export as PDF",
+    summary="Universal Export (PDF, DOCX, PNG)",
     description="""
+Generate document from text, files, or images and download in your preferred format.
+
+**One endpoint for all export formats** - Simply specify the format parameter: 'pdf', 'docx', or 'png'
+
+**Input Methods:**
+- Text prompt only
+- File upload (PDF, DOCX, TXT, images)
+- Combination of prompt + file
+
+**Export Formats:**
+
+1. **PDF (Default)** - `format=pdf`
+   - Professional layout with headers and branding
+   - Formatted tables for line items
+   - Color-coded sections (header, items, totals)
+   - Letter-sized pages (8.5" × 11")
+   - Use for: Print-ready invoices, professional delivery, accounting records
+
+2. **DOCX (Word)** - `format=docx`
+   - Editable Word document format
+   - Professional table styling with grid borders
+   - Standard Word compatibility
+   - Use for: Editable templates, custom branding, further modifications
+
+3. **PNG (Image)** - `format=png`
+   - 800×1000 pixel resolution
+   - Clean white background
+   - Professional typography
+   - Use for: Social media, WhatsApp, quick previews, mobile sharing
+
+**Example:**
+```bash
+curl -X POST "http://localhost:8000/api/export" \\
+  -F "prompt=Invoice for John at Lagos, 100 units at 5000 NGN" \\
+  -F "format=pdf"
+```
+
+**Response:**
+Binary file in the specified format with appropriate filename (e.g., INV20241201.pdf)
+    """,
+    response_description="Binary file in specified format (PDF, DOCX, or PNG)",
+    responses={
+        200: {
+            "content": {
+                "application/pdf": {},
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {},
+                "image/png": {}
+            },
+            "description": "Successfully generated document in requested format"
+        }
+    }
+)
+async def export_document(
+    format: str = Form('pdf', description="Export format: 'pdf', 'docx', or 'png'"),
+    prompt: str = Form(None),
+    file: Optional[UploadFile] = File(None),
+    document_type: Optional[str] = Form(None),
+    history: Optional[str] = Form(None)
+):
+    try:
+        # Validate format
+        valid_formats = ['pdf', 'docx', 'png']
+        format_lower = format.lower()
+        if format_lower not in valid_formats:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid format '{format}'. Supported formats: {', '.join(valid_formats)}"
+            )
+
+        # Generate document data
+        enriched, doc_type = await _generate_document_data(prompt, file, document_type, history)
+
+        # Generate export in specified format
+        export_buffer = export_service.generate_export(enriched, doc_type, format_lower)
+
+        # Determine media type and file extension
+        media_types = {
+            'pdf': 'application/pdf',
+            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'png': 'image/png'
+        }
+
+        # Generate filename
+        doc_number = enriched.get('invoice_number' if doc_type == 'invoice' else 'quote_number', 'document')
+        filename = f"{doc_number}.{format_lower}"
+
+        return StreamingResponse(
+            export_buffer,
+            media_type=media_types[format_lower],
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post(
+    "/api/export/pdf",
+    tags=["Export Formats (Legacy)"],
+    summary="[DEPRECATED] Export as PDF",
+    description="""
+**⚠️ DEPRECATED: Use `/api/export` with `format="pdf"` instead.**
+
+Legacy endpoint for backward compatibility.
+
 Generate document from text, files, or images and download as professionally formatted PDF.
 
 **Input Methods:**
@@ -355,7 +469,8 @@ Binary PDF file with appropriate filename (e.g., INV20241201.pdf)
             "content": {"application/pdf": {}},
             "description": "Successfully generated PDF document"
         }
-    }
+    },
+    deprecated=True
 )
 async def export_pdf(
     prompt: str = Form(None),
@@ -363,26 +478,18 @@ async def export_pdf(
     document_type: Optional[str] = Form(None),
     history: Optional[str] = Form(None)
 ):
-    try:
-        enriched, doc_type = await _generate_document_data(prompt, file, document_type, history)
-        pdf_buffer = export_service.generate_pdf(enriched, doc_type)
-        filename = f"{enriched.get('invoice_number' if doc_type == 'invoice' else 'quote_number', 'document')}.pdf"
-
-        return StreamingResponse(
-            pdf_buffer,
-            media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Redirect to unified endpoint
+    return await export_document(format='pdf', prompt=prompt, file=file, document_type=document_type, history=history)
 
 @app.post(
     "/api/export/docx",
-    tags=["Export Formats"],
-    summary="Export as DOCX",
+    tags=["Export Formats (Legacy)"],
+    summary="[DEPRECATED] Export as DOCX",
     description="""
+**⚠️ DEPRECATED: Use `/api/export` with `format="docx"` instead.**
+
+Legacy endpoint for backward compatibility.
+
 Generate document from text, files, or images and download as Microsoft Word document.
 
 **Input Methods:**
@@ -419,7 +526,8 @@ Binary DOCX file with appropriate filename (e.g., INV20241201.docx)
             "content": {"application/vnd.openxmlformats-officedocument.wordprocessingml.document": {}},
             "description": "Successfully generated DOCX document"
         }
-    }
+    },
+    deprecated=True
 )
 async def export_docx(
     prompt: str = Form(None),
@@ -427,26 +535,18 @@ async def export_docx(
     document_type: Optional[str] = Form(None),
     history: Optional[str] = Form(None)
 ):
-    try:
-        enriched, doc_type = await _generate_document_data(prompt, file, document_type, history)
-        docx_buffer = export_service.generate_docx(enriched, doc_type)
-        filename = f"{enriched.get('invoice_number' if doc_type == 'invoice' else 'quote_number', 'document')}.docx"
-
-        return StreamingResponse(
-            docx_buffer,
-            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Redirect to unified endpoint
+    return await export_document(format='docx', prompt=prompt, file=file, document_type=document_type, history=history)
 
 @app.post(
     "/api/export/png",
-    tags=["Export Formats"],
-    summary="Export as PNG Image",
+    tags=["Export Formats (Legacy)"],
+    summary="[DEPRECATED] Export as PNG Image",
     description="""
+**⚠️ DEPRECATED: Use `/api/export` with `format="png"` instead.**
+
+Legacy endpoint for backward compatibility.
+
 Generate document from text, files, or images and download as PNG image.
 
 **Input Methods:**
@@ -486,7 +586,8 @@ Binary PNG image file with appropriate filename (e.g., INV20241201.png)
             "content": {"image/png": {}},
             "description": "Successfully generated PNG image"
         }
-    }
+    },
+    deprecated=True
 )
 async def export_png(
     prompt: str = Form(None),
@@ -494,20 +595,8 @@ async def export_png(
     document_type: Optional[str] = Form(None),
     history: Optional[str] = Form(None)
 ):
-    try:
-        enriched, doc_type = await _generate_document_data(prompt, file, document_type, history)
-        png_buffer = export_service.generate_image(enriched, doc_type)
-        filename = f"{enriched.get('invoice_number' if doc_type == 'invoice' else 'quote_number', 'document')}.png"
-
-        return StreamingResponse(
-            png_buffer,
-            media_type="image/png",
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Redirect to unified endpoint
+    return await export_document(format='png', prompt=prompt, file=file, document_type=document_type, history=history)
 
 def _detect_type(prompt: str) -> str:
     """Simple keyword-based detection (fallback)"""
