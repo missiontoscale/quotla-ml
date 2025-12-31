@@ -609,7 +609,11 @@ def _ai_detect_type(prompt: str):
         detection_prompt_file = ai_service.prompts_dir / "document_type_detection.txt"
         if detection_prompt_file.exists():
             detection_template = detection_prompt_file.read_text()
-            detection_prompt = detection_template.replace("{prompt}", prompt)
+
+            # Inject current datetime and user prompt
+            current_datetime = datetime.now().strftime('%A, %B %d, %Y at %I:%M %p')
+            detection_prompt = detection_template.replace("{current_datetime}", current_datetime)
+            detection_prompt = detection_prompt.replace("{prompt}", prompt)
 
             # Use AI to detect document type
             result = ai_service.detect_document_type(detection_prompt)
