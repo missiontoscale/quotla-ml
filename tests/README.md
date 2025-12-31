@@ -75,4 +75,4 @@ Interactive UI for testing all endpoints.
 ✓ **Format**: Is JSON structure valid?
 ✓ **Edge cases**: How does it handle missing/incomplete data?
 ✓ **Performance**: Response times acceptable?
-✓ **Error handling**: Graceful failures?
+✓ **Error handling**: Are failures graceful?
