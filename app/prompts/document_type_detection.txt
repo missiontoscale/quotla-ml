@@ -35,6 +35,14 @@ QUOTE indicators:
 - Keywords: "quote", "quotation", "estimate", "proposal", "price for"
 - MUST include: customer/company name OR items/services OR pricing
 
+INVENTORY indicators:
+- Adding, updating, or managing inventory items
+- Creating product or service catalog entries
+- Stock management requests
+- Keywords: "inventory", "add product", "add service", "catalog", "stock item", "create item"
+- MUST include: item name/description AND pricing OR quantity information
+- Examples: "add laptop to inventory", "create new product", "update stock item"
+
 Return ONLY a JSON object:
 
 For conversational requests:
@@ -45,7 +53,7 @@ For conversational requests:
 
 For business document requests:
 {
-  "document_type": "invoice" or "quote",
+  "document_type": "invoice" or "quote" or "inventory",
   "confidence": "high" or "medium" or "low",
   "reasoning": "brief explanation"
 }

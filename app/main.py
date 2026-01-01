@@ -158,7 +158,7 @@ Use multipart/form-data with:
 async def generate_document(
     prompt: str = Form(None, description="Text prompt or instructions for extraction"),
     file: Optional[UploadFile] = File(None, description="Optional file upload (PDF, DOCX, TXT, or image)"),
-    document_type: Optional[str] = Form(None, description="Force type: 'invoice' or 'quote' (auto-detected if omitted)"),
+    document_type: Optional[str] = Form(None, description="Force type: 'invoice', 'quote', or 'inventory' (auto-detected if omitted)"),
     history: Optional[str] = Form(None, description="JSON string of conversation history")
 ):
     try:
@@ -224,12 +224,22 @@ async def generate_document(
                     detail=f"Unsupported file type: {file_ext}. Supported: PDF, DOCX, TXT, JPEG, PNG"
                 )
 
-        # Check if currency is missing
-        if not data.get('currency'):
+        # Check if currency is missing (except for inventory which handles it differently)
+        if doc_type != 'inventory' and not data.get('currency'):
             return {
                 "success": False,
                 "needs_currency": True,
                 "message": "Please specify the currency for this document (e.g., NGN, USD, EUR, GBP)",
+                "detected_document_type": doc_type,
+                "partial_data": data
+            }
+
+        # For inventory, check currency but don't fail if missing
+        if doc_type == 'inventory' and not data.get('currency'):
+            return {
+                "success": False,
+                "needs_currency": True,
+                "message": "Please specify the currency for pricing (e.g., NGN, USD, EUR, GBP)",
                 "detected_document_type": doc_type,
                 "partial_data": data
             }
@@ -632,6 +642,35 @@ def _ai_detect_type(prompt: str):
         return _detect_type(prompt)
 
 def _enrich_data(data: Dict[str, Any], doc_type: str) -> Dict[str, Any]:
+    # Handle inventory separately
+    if doc_type == 'inventory':
+        # Generate unique inventory item ID
+        data['inventory_id'] = f"ITEM{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        data['created_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # Convert tax rate to both formats
+        tax_rate = data.get('tax_rate', 0)
+        data['tax_rate_percentage'] = tax_rate
+        data['tax_rate'] = tax_rate / 100  # Convert to decimal
+
+        # Calculate profit margin if both prices provided
+        if data.get('cost_price', 0) > 0 and data.get('unit_price', 0) > 0:
+            profit = data['unit_price'] - data['cost_price']
+            data['profit_margin'] = (profit / data['cost_price']) * 100
+            data['profit_per_unit'] = profit
+        else:
+            data['profit_margin'] = 0
+            data['profit_per_unit'] = 0
+
+        # Calculate total stock value if quantity provided
+        if data.get('quantity_on_hand') and data.get('cost_price', 0) > 0:
+            data['total_stock_value'] = data['quantity_on_hand'] * data['cost_price']
+        else:
+            data['total_stock_value'] = 0
+
+        return data
+
+    # Handle invoices and quotes
     if doc_type == 'invoice':
         data['invoice_number'] = f"INV{datetime.now().strftime('%Y%m%d%H%M%S')}"
     else:
@@ -737,6 +776,34 @@ async def _generate_document_data(
     return enriched, doc_type
 
 def _format_text(data: Dict[str, Any], doc_type: str) -> str:
+    if doc_type == 'inventory':
+        return f"""--- INVENTORY ITEM ---
+Item ID: {data['inventory_id']}
+Created: {data['created_at']}
+
+Name: {data.get('name', 'N/A')}
+Type: {data.get('item_type', 'N/A').title()}
+SKU: {data.get('sku') or 'N/A'}
+Category: {data.get('category') or 'N/A'}
+
+Pricing:
+Unit Price: {data.get('currency', 'NGN')} {data.get('unit_price', 0):,.2f}
+Cost Price: {data.get('currency', 'NGN')} {data.get('cost_price', 0):,.2f}
+Profit per Unit: {data.get('currency', 'NGN')} {data.get('profit_per_unit', 0):,.2f}
+Profit Margin: {data.get('profit_margin', 0):.1f}%
+Tax Rate: {data.get('tax_rate_percentage', 0):.1f}%
+
+Stock:
+Track Inventory: {'Yes' if data.get('track_inventory') else 'No'}
+Quantity on Hand: {data.get('quantity_on_hand') or 'N/A'}
+Low Stock Threshold: {data.get('low_stock_threshold') or 'N/A'}
+Reorder Quantity: {data.get('reorder_quantity') or 'N/A'}
+Total Stock Value: {data.get('currency', 'NGN')} {data.get('total_stock_value', 0):,.2f}
+
+Supplier: {data.get('supplier_name') or 'N/A'}
+Status: {'Active' if data.get('is_active') else 'Inactive'}"""
+
+
     items_text = "\n".join([
         f"{item['description']}\n  Qty: {item['quantity']} x {data['currency']} {item['unit_price']:,.2f} = {data['currency']} {item['amount']:,.2f}"
         for item in data['items']

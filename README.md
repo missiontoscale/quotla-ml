@@ -9,6 +9,7 @@ A FastAPI-based service that converts natural language prompts into structured b
 - **File Upload Support**: Extract data from PDF, DOCX, TXT, and image files
 - **Vision AI**: Process scanned receipts and invoice photos using vision models
 - **Unified Export Endpoint**: Single `/api/export` endpoint for PDF, DOCX, and PNG formats
+- **Inventory Management**: AI-powered product/service catalog generation
 - **Conversation History**: Support for multi-turn conversations to refine documents
 - **AI-Powered Detection**: Automatically detects document type based on context
 - **Smart Currency Detection**: Prompts user when currency is not specified
@@ -353,6 +354,7 @@ If `document_type` is not provided, the API uses AI-powered detection:
 The AI service uses specialized prompts from:
 - `app/prompts/invoice_prompt.txt` - Invoice extraction schema
 - `app/prompts/quote_prompt.txt` - Quote extraction schema
+- `app/prompts/inventory_prompt.txt` - Inventory extraction schema
 - `app/prompts/document_type_detection.txt` - Type detection logic
 
 ### 3. Data Enrichment
@@ -378,6 +380,17 @@ After AI extraction, the system automatically enriches the data:
 - `subtotal`: Sum of all item amounts
 - `tax_rate`: Decimal value (e.g., 0.075 for 7.5%)
 - `tax_rate_percentage`: Display value (e.g., 7.5)
+- `tax_amount`: `subtotal × tax_rate`
+- `total`: `subtotal + tax_amount` (no delivery for quotes)
+- `currency`: Extracted from prompt or null (prompts user if missing)
+
+**For Inventory Items:**
+- `inventory_id`: `ITEM{YYYYMMDDHHmmss}` (auto-generated ID)
+- `created_at`: Creation timestamp
+- `profit_margin`: `((unit_price - cost_price) / cost_price) × 100`
+- `profit_per_unit`: `unit_price - cost_price`
+- `total_stock_value`: `quantity_on_hand × cost_price`
+- `currency`: Extracted from prompt or null
 - `tax_amount`: `subtotal × tax_rate`
 - `total`: `subtotal + tax_amount` (no delivery for quotes)
 - `currency`: Extracted from prompt or null (prompts user if missing)
